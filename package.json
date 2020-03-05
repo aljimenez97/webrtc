@@ -11,8 +11,10 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "node": "^13.9.0",
     "node-static": "^0.7.11",
     "socket.io": "^2.3.0"
-  }
+  },
+  "engines": {
+    "node":"10.16.3"
+  },
 }
