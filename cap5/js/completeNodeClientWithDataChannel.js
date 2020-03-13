@@ -7,10 +7,11 @@ window.onbeforeunload = function(e){
 }
 
 // Data channel information
-var sendChannel, receiveChannel;
+var sendChannel, sendChannel2;
 var sendButton = document.getElementById("sendButton");
 var sendTextarea = document.getElementById("dataChannelSend");
 var receiveTextarea = document.getElementById("dataChannelReceive");
+var userName
 
 // HTML5 <video> elements
 var localVideo = document.querySelector('#localVideo');
@@ -36,8 +37,7 @@ var webrtcDetectedBrowser = null;
 var webrtcDetectedVersion = null;
 
 if (navigator.mozGetUserMedia) {
-  console.log("This appears to be Firefox");
-  webrtcDetectedBrowser = "firefox";
+  console.log("This appears to be Firefoxº  webrtcDetectedBrowser = "firefox";
   webrtcDetectedVersion = parseInt(navigator.userAgent.match(/Firefox\/([0-9]+)\./)[1], 10);
 }
 else if (navigator.webkitGetUserMedia) {
@@ -56,7 +56,7 @@ var pc_config = webrtcDetectedBrowser === 'firefox' ?
 }; */
 
 var pc_config = {
-	'iceServers': [{'urls': 'stun:stun.l.google.com:19302'}]
+  'iceServers': [{'urls': 'stun:stun.l.google.com:19302'}]
 };
 
 var pc_constraints = {
@@ -72,6 +72,14 @@ function trace(text) {
     text = text.substring(0, text.length - 1);
   }
   console.log((performance.now() / 1000).toFixed(3) + ": " + text);
+}
+
+
+var name = prompt('What is your name?');
+var surname = prompt('And your surname?');
+
+if (name !== '' && surname !== ''){
+  userName = name + ' ' + surname;
 }
 
 /////////////////////////////////////////////
@@ -222,12 +230,13 @@ function createPeerConnection() {
   pc.ontrack = handleRemoteStreamAdded;
   pc.onremovestream = handleRemoteStreamRemoved;
 
-  if (isInitiator) {
     try {
       // Create a reliable data channel
-      sendChannel = pc.createDataChannel("sendDataChannel",
-        {reliable: true});
+      sendChannel = pc.createDataChannel("sendDataChannel", 
+        { reliable: true, negotiated: true, id: 0 });
       trace('Created send data channel');
+      //sendChannel2 = pc.createDataChannel("sendDataChannel2",
+      //  { reliable: true, negotiated: true, id: 1 });
     } catch (e) {
       alert('Failed to create data channel. ');
       trace('createDataChannel() failed with exception: ' + e.message);
@@ -235,33 +244,31 @@ function createPeerConnection() {
     sendChannel.onopen = handleSendChannelStateChange;
     sendChannel.onmessage = handleMessage;
     sendChannel.onclose = handleSendChannelStateChange;
-  } else { // Joiner
-    pc.ondatachannel = gotReceiveChannel;
-  }
+    //sendChannel2.onmessage = handleMessage2;
+
 }
 
 // Data channel management
 function sendData() {
-  var data = sendTextarea.value;
-  if(isInitiator) sendChannel.send(data);
-  else receiveChannel.send(data);
+  var data = userName + ": " +sendTextarea.value;
+  sendChannel.send(data);
   trace('Sent data: ' + data);
+  receiveTextarea.value += data + '\n';
+  sendTextarea.value=""
 }
 
 // Handlers...
-
-function gotReceiveChannel(event) {
-  trace('Receive Channel Callback');
-  receiveChannel = event.channel;
-  receiveChannel.onmessage = handleMessage;
-  receiveChannel.onopen = handleReceiveChannelStateChange;
-  receiveChannel.onclose = handleReceiveChannelStateChange;
-}
 
 function handleMessage(event) {
   trace('Received message: ' + event.data);
   receiveTextarea.value += event.data + '\n';
 }
+
+//function handleMessage2(event) {
+//  trace('Received file data: ');
+//  recibeData(event.data);
+//}
+
 
 function handleSendChannelStateChange() {
   var readyState = sendChannel.readyState;
@@ -278,19 +285,21 @@ function handleSendChannelStateChange() {
   }
 }
 
+
+
 function handleReceiveChannelStateChange() {
   var readyState = receiveChannel.readyState;
   trace('Receive channel state is: ' + readyState);
   // If channel ready, enable user's input
   if (readyState == "open") {
-	    dataChannelSend.disabled = false;
-	    dataChannelSend.focus();
-	    dataChannelSend.placeholder = "";
-	    sendButton.disabled = false;
-	  } else {
-	    dataChannelSend.disabled = true;
-	    sendButton.disabled = true;
-	  }
+      dataChannelSend.disabled = false;
+      dataChannelSend.focus();
+      dataChannelSend.placeholder = "";
+      sendButton.disabled = false;
+    } else {
+      dataChannelSend.disabled = true;
+      sendButton.disabled = true;
+    }
 }
 
 // ICE candidates management
@@ -315,7 +324,7 @@ function doCall() {
 
 // Signalling error handler
 function onSignalingError(error) {
-	console.log('Failed to create signaling message : ' + error.name);
+  console.log('Failed to create signaling message : ' + error.name);
 }
 
 // Create Answer
@@ -363,10 +372,11 @@ function handleRemoteHangup() {
 function stop() {
   isStarted = false;
   if (sendChannel) sendChannel.close();
-  if (receiveChannel) receiveChannel.close();
+  if (sendChannel2) sendChannel.close();
   if (pc) pc.close();
   pc = null;
   sendButton.disabled=true;
 }
 
 ///////////////////////////////////////////
+
